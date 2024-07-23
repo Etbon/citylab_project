@@ -1,7 +1,7 @@
 #include "rclcpp/logging.hpp"
-#include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/twist.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "geometry_msgs/msg/twist.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include <cmath>
 #include <chrono>
 
@@ -9,9 +9,9 @@ class Patrol : public rclcpp::Node {
   public:
     Patrol()
       : Node("patrol_node"),
-          safe_distance_(0.5),  // Setting a safe distance
+          safe_distance_(0.7),  // Setting a safe distance
           linear_speed_(0.1),
-          angular_speed_factor_(0.5),
+          angular_speed_factor_(2),
           direction_(0.0) {
 
         // Create callback groups for mutually exclusive callbacks
@@ -75,7 +75,7 @@ class Patrol : public rclcpp::Node {
     void timerCallback() {
         geometry_msgs::msg::Twist vel_msg;
         vel_msg.linear.x = linear_speed_;
-        vel_msg.angular.z = angular_speed_factor_ * direction_;
+        vel_msg.angular.z = direction_ / angular_speed_factor_;
 
         RCLCPP_INFO(this->get_logger(), "Linear Velocity: %f, Angular Velocity: %f", vel_msg.linear.x, vel_msg.angular.z);
         publisher_->publish(vel_msg);
