@@ -9,7 +9,7 @@ class Patrol : public rclcpp::Node {
   public:
     Patrol()
       : Node("patrol_node"),
-          safe_distance_(0.7),  // Setting a safe distance
+          safe_distance_(0.5),  // Setting a safe distance
           linear_speed_(0.1),
           angular_speed_factor_(2),
           direction_(0.0) {
