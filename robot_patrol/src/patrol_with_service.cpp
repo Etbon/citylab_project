@@ -37,7 +37,7 @@ public:
 
         // Initialize timer with callback
         timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(100), std::bind(&Patrol::timer_callback, this), 
+            std::chrono::milliseconds(200), std::bind(&Patrol::timer_callback, this), 
             timer_callback_group_
         );
     }
