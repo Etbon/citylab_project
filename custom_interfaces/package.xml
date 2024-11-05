@@ -19,6 +19,7 @@
   <exec_depend>rclcpp</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
 
   <!-- Member of group -->
