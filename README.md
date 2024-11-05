@@ -1,7 +1,18 @@
 
-# Patrol Behavior
+# Patrol Behavior Update 
 
 This ROS 2 package implements patrol behavior for a TurtleBot. The robot navigates a predefined area, avoiding obstacles while following a patrol path.
+
+---
+
+  ## Service Server
+  Here we handle the laser data and logic in a service server sending the direction to the patrol_with_service.cpp, which continues the patrol.cpp.
+
+  ## Action Server
+  Also, we create a new action server to go to a position in the 2D plane, where, through the terminal, we can set X, Y, and Theta values, and the TurtleBot will go to that position.
+  We did this by converting Quaternions into Euler angels.
+ 
+ --- 
 
 ## Features
 
