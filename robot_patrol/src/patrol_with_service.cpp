@@ -81,15 +81,15 @@ private:
         // Create and set velocity message based on the response direction
         geometry_msgs::msg::Twist vel_msg;
         if (current_direction_ == "right") {
-            vel_msg.linear.x = 0.05;
+            vel_msg.linear.x = 0.1;
             vel_msg.angular.z = -0.5;
         }
         else if (current_direction_ == "forward") {
-            vel_msg.linear.x = 0.05;
+            vel_msg.linear.x = 0.1;
             vel_msg.angular.z = 0.0;
         }
         else if (current_direction_ == "left") {
-            vel_msg.linear.x = 0.05;
+            vel_msg.linear.x = 0.1;
             vel_msg.angular.z = 0.5;
         }
 
