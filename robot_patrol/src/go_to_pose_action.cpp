@@ -7,9 +7,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 
-#include "custom_interfaces/action/detail/go_to_pose__struct.hpp"
 #include "custom_interfaces/action/go_to_pose.hpp"
-#include "geometry_msgs/msg/detail/pose2_d__struct.hpp"
+#include "geometry_msgs/msg/pose2_d.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/publisher.hpp"
 #include "rclcpp/rate.hpp"
@@ -75,7 +74,7 @@ class GoToPose : public rclcpp::Node {
         
         desired_pos_.x = goal->goal_pos.x;
         desired_pos_.y = goal->goal_pos.y;
-        desired_pos_.theta = goal->goal_pos.theta;
+        desired_pos_.theta = goal->goal_pos.theta * M_PI / 180.0;   // Convertig theta from degrees to radians 
         
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
@@ -111,6 +110,19 @@ class GoToPose : public rclcpp::Node {
         double roll, pitch, yaw;
         m.getRPY(roll, pitch, yaw);  // Convert to Roll, Pitch, Yaw 
         current_pos_.theta = yaw;    // Store only the yaw as theta
+        current_pos_.theta = wrapAngle(yaw);
+    }
+
+    // Avoiding sudden jumps in angle calculation 
+    double wrapAngle(double angle) {
+        while (angle > M_PI) {
+            angle -= 2 * M_PI;
+        }
+        while (angle < -M_PI) {
+            angle += 2 * M_PI;
+        }    
+        
+        return angle;
     }
 
     void execute(const std::shared_ptr<GoalHandleGoToPose> goal_handle) {
@@ -118,8 +130,14 @@ class GoToPose : public rclcpp::Node {
 
         auto feedback = std::make_shared<GoToPoseAction::Feedback>();
         auto result = std::make_shared<GoToPoseAction::Result>();
+
+        bool position_reached = false; // Flag to indicate if position is reached 
+        const double POSITION_THRESHOLD = 0.05;
+        const double ORIENTATION_THRESHOLD = 0.1;
+        const double MIN_ANGULAR_SPEED = 0.05;
         
         while (rclcpp::ok()) {
+            // Handle gola cancellation
             if (goal_handle->is_canceling()) {
                 // Stop robot 
                 cmd_vel.linear.x = 0.0;
@@ -138,45 +156,61 @@ class GoToPose : public rclcpp::Node {
             double dy = desired_pos_.y - current_pos_.y;
             double distance_to_goal = std::sqrt(dx*dx + dy*dy);
 
-            if (goal_handle->is_active()) {
-                // Update feedback and publish it 
-                feedback->current_pos = current_pos_;
-                goal_handle->publish_feedback(feedback);
-            
-            }
-            else {
-                // The goal is no longer active, exit 
-                break; 
-            }
-            
-            if (distance_to_goal < 0.1) {
-                // Stop the movment 
-                cmd_vel.linear.x = 0.0;
-                cmd_vel.angular.z = 0.0;
+            // Handel the feedback
+            feedback->current_pos = current_pos_;
+            feedback->current_pos.theta = current_pos_.theta * 180.0 / M_PI; // Show theta in degrees but use calculation in radians 
+            goal_handle->publish_feedback(feedback);
 
-                velocity_publisher_->publish(cmd_vel);
+            // Step 1: go to x and y position 
+            if (!position_reached) {
+                // Check if close enogh to target position 
+                if (distance_to_goal < POSITION_THRESHOLD) {
+                    // Stop the movment 
+                    cmd_vel.linear.x = 0.0;
+                    cmd_vel.angular.z = 0.0;
+                    velocity_publisher_->publish(cmd_vel); // Stop linear movement 
 
-                result->status = true;
-                RCLCPP_INFO(this->get_logger(), "Goal reached!");
-                if (goal_handle->is_active()) {
-                    goal_handle->succeed(result);
+                    position_reached = true;
                 }
-                break;
+                else {
+                    // Calculate the angle to the target 
+                    double target_angle = std::atan2(dy, dx);
+                    double angle_diff = std::atan2(std::sin(target_angle - current_pos_.theta), 
+                                                   std::cos(target_angle - current_pos_.theta));
+
+                    // Moving to the target position
+                    cmd_vel.linear.x = 0.1;                                                                                               // Constant linear speed
+                    cmd_vel.angular.z = std::max(std::abs(angle_diff), MIN_ANGULAR_SPEED) * (angle_diff >= 0 ? 1 : -1);       // Proportional angualr speed based on agular difference 
+                    velocity_publisher_->publish(cmd_vel);
+                }            
+
+            }
+            // Step 2: rotat in the theta axis
+            else {
+                // Adjust orientation in z axis(theta)
+                double angle_diff = std::atan2(std::sin(desired_pos_.theta - current_pos_.theta),
+                                               std::cos(desired_pos_.theta - current_pos_.theta));
+
+                if (std::abs(angle_diff) < ORIENTATION_THRESHOLD) {
+                    cmd_vel.linear.x = 0.0;
+                    cmd_vel.angular.z = 0.0;
+                    velocity_publisher_->publish(cmd_vel);
+
+                    result->status = true;
+                    RCLCPP_INFO(this->get_logger(), "Goal reached with correct orientation!");
+                    if (goal_handle->is_active()) {
+                        goal_handle->succeed(result);
+                    }
+                    break;
+                }
+                else {
+                    cmd_vel.linear.x = 0.0;
+                    cmd_vel.angular.z = 0.5 * angle_diff;
+                    velocity_publisher_->publish(cmd_vel); // Continue adjusting orientation
+                }
             }
 
-            // Calculate the angle to the target 
-            double target_angle = std::atan2(dy, dx);
-            double angle_diff = target_angle - current_pos_.theta;
-            angle_diff = std::atan2(std::sin(angle_diff), std::cos(angle_diff));  // Normalize angle
-
-            // Moving to the target position
-            cmd_vel.linear.x = 0.2;                 // Constant linear speed
-            cmd_vel.angular.z = 1.0 * angle_diff;    // Proportional angualr speed based on agular difference 
-
-            // Publish the velocity 
-            velocity_publisher_->publish(cmd_vel);
-
-            loop_rate.sleep();
+            loop_rate.sleep();  
         }
     }
 };

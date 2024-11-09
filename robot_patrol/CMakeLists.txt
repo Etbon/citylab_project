@@ -23,6 +23,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(custom_interfaces REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -68,6 +70,8 @@ ament_target_dependencies(go_to_pose_action_node
 	rclcpp_action 
 	nav_msgs
 	custom_interfaces
+	tf2
+	tf2_ros
 )
 
 
