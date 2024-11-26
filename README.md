@@ -20,7 +20,8 @@ This ROS 2 package implements patrol behavior for a TurtleBot. The robot navigat
 - Real-time feedback and logging
 
 ## Simulation 
-https://github.com/user-attachments/assets/2195d958-3d8d-44fc-baad-cc1ca5bd6bb4
+https://github.com/user-attachments/assets/f45d8651-4f7a-46b8-8c1a-96bbd970989f
+
 
 ## TurtleBot3 Lab
 https://github.com/user-attachments/assets/4b52a3d9-5b33-4af6-ab23-658460ddb977
